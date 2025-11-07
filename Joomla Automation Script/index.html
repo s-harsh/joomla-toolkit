@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Joomla DDEV Auto‑Setup — Professional Documentation</title>
+  <meta name="description" content="Spin up a clean Joomla instance locally with a single command using DDEV. Beginner-to-advanced guide with troubleshooting and customization." />
+  <style>
+    /* =====================
+       Design Tokens
+       ===================== */
+    :root {
+      --bg: #0b0f14;
+      --surface: #0f1520;
+      --surface-2: #121b2a;
+      --text: #e7eef7;
+      --muted: #a2b0c6;
+      --border: #1b2433;
+      --brand: #7cc7ff;
+      --brand-2: #78f0d9;
+      --ok: #7bd88f;
+      --warn: #ffd166;
+      --danger: #ff6b6b;
+      --code: #0a1220;
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--bg), #0a0d12 40%, #0a0b10 100%);
+      font: 16px/1.65 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+
+    /* Layout */
+    .app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    @media (max-width: 980px) { .app { grid-template-columns: 1fr; } }
+
+    /* Sidebar */
+    .sidebar { position: sticky; top: 0; align-self: start; height: 100vh; overflow: auto; background: linear-gradient(180deg,#0d1420,#0b111a); border-right: 1px solid var(--border); }
+    @media (max-width: 980px) { .sidebar { position: relative; height: auto; } }
+    .brand { display:flex; gap:12px; align-items:center; padding:18px; border-bottom:1px solid var(--border); }
+    .logo { width:36px; height:36px; border-radius:10px; background: radial-gradient(120% 120% at 15% 15%, var(--brand), var(--brand-2)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+    .brand h1 { font-size: 18px; margin: 0; }
+
+    .toc { padding: 16px; }
+    .toc h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 18px 12px; }
+    .toc a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: var(--muted); border: 1px solid transparent; }
+    .toc a:hover { color: var(--text); background: #0d1522; border-color: var(--border); }
+    .toc a.active { background: #0e1726; color: var(--text); border-color: #1d2840; }
+
+    /* Topbar */
+    .topbar { position: sticky; top: 0; z-index: 10; background: rgba(10,14,20,.7); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
+    .topbar-inner { display: flex; gap: 12px; justify-content: space-between; align-items: center; max-width: 1100px; margin: 0 auto; padding: 14px 20px; }
+    .search { flex: 1; display: flex; align-items: center; gap: 10px; background: #0d1420; border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; }
+    .search input { flex: 1; background: transparent; border: 0; color: var(--text); outline: none; }
+    .btn { border:1px solid var(--border); background: #0f1520; color: var(--text); padding: 8px 12px; border-radius: 10px; cursor: pointer; }
+    .btn:hover { border-color: #2a3752; }
+
+    /* Main content */
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .hero { display:flex; flex-wrap:wrap; gap:20px; align-items:center; background: linear-gradient(180deg,#0e1726,#0b1320); border: 1px solid var(--border); border-radius: 18px; padding: 24px; box-shadow: var(--shadow); }
+    .hero h2 { margin: 0 0 6px 0; font-size: 28px; }
+    .hero p { margin: 0; color: var(--muted); }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+    .card { grid-column: span 12; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
+    @media (min-width: 860px) { .half { grid-column: span 6; } }
+
+    h3 { margin: 6px 0 12px 0; }
+    .muted { color: var(--muted); }
+
+    /* Code blocks */
+    pre { position: relative; background: var(--code); border: 1px solid #132035; border-radius: 14px; padding: 14px 12px; overflow: auto; }
+    pre .copy { position: absolute; top: 8px; right: 8px; border: 1px solid #1c2940; background: #0f192b; color: var(--muted); padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+    pre .copy:hover { color: var(--text); border-color: #274065; }
+    code.inline { padding: .2em .45em; border-radius: .45em; background: #10192a; border: 1px solid #1a2842; }
+
+    .kpi { display:flex; gap: 10px; align-items:center; }
+    .kpi .dot { width:10px; height:10px; border-radius:50%; background: var(--brand-2); box-shadow: 0 0 0 4px rgba(120,240,217,.12); }
+
+    .callout { border-left: 4px solid var(--brand); background: #0e1726; border: 1px solid var(--border); padding: 12px; border-radius: 10px; }
+    .ok { color: var(--ok); } .warn { color: var(--warn); } .danger { color: var(--danger); }
+
+    footer { color: var(--muted); text-align: center; padding: 40px 0; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Joomla DDEV Auto‑Setup</h1>
+      </div>
+      <nav class="toc" id="toc">
+        <h2>Contents</h2>
+        <a href="#intro" class="active">Overview</a>
+        <a href="#prereq">Prerequisites</a>
+        <a href="#quickstart">Quick Start</a>
+        <a href="#workflow">How it Works</a>
+        <a href="#cli">CLI & Examples</a>
+        <a href="#defaults">Defaults</a>
+        <a href="#structure">Project Structure</a>
+        <a href="#customize">Customization</a>
+        <a href="#troubleshoot">Troubleshooting</a>
+        <a href="#faq">FAQ</a>
+        <a href="#security">Security</a>
+        <a href="#cleanup">Clean Up</a>
+      </nav>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div class="search" role="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/></svg>
+            <input id="searchInput" type="search" placeholder="Search this page… (Ctrl/⌘+K)" />
+          </div>
+          <button class="btn" id="copyInstall">Copy Install Script</button>
+        </div>
+      </div>
+
+      <div class="container">
+        <section class="hero" id="intro">
+          <div style="flex:1 1 420px">
+            <h2>One‑Command Joomla Setup with DDEV</h2>
+            <p class="muted">A streamlined script that fetches Joomla (latest or specific), configures DDEV, performs an unattended install, and opens the admin panel. Perfect for onboarding, demos, and plugin/theme development.</p>
+            <div class="kpi" style="margin-top:12px">
+              <div class="dot" aria-hidden="true"></div>
+              <span class="muted">5–7 minutes from zero → working site (typical laptop)</span>
+            </div>
+          </div>
+          <div style="flex:1 1 260px">
+            <div class="callout">
+              <strong>TL;DR</strong>
+              <pre><button class="copy" data-target="snip-latest">Copy</button><code id="snip-latest">chmod +x setup_joomla.sh
+./setup_joomla.sh mysite</code></pre>
+              <pre style="margin-top:10px"><button class="copy" data-target="snip-pinned">Copy</button><code id="snip-pinned">./setup_joomla.sh mysite 5.1.2</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="grid" id="prereq">
+          <article class="card half">
+            <h3>Prerequisites</h3>
+            <ul>
+              <li>Docker (Desktop or CLI)</li>
+              <li>DDEV (<a href="https://ddev.readthedocs.io" target="_blank" rel="noreferrer">docs</a>)</li>
+              <li><code class="inline">curl</code>, <code class="inline">jq</code>, <code class="inline">unzip</code>, <code class="inline">bash</code></li>
+            </ul>
+            <pre><button class="copy" data-target="snip-check">Copy</button><code id="snip-check">docker --version
+ddev version
+curl --version
+jq --version
+unzip -v</code></pre>
+          </article>
+          <article class="card half">
+            <h3>Install helpers quickly</h3>
+            <pre><button class="copy" data-target="snip-install-helpers">Copy</button><code id="snip-install-helpers"># Debian/Ubuntu
+sudo apt-get update && sudo apt-get install -y jq unzip
+
+# macOS (Homebrew)
+brew install jq unzip
+
+# Fedora
+sudo dnf install -y jq unzip</code></pre>
+          </article>
+        </section>
+
+        <section class="card" id="quickstart">
+          <h3>Quick Start</h3>
+          <ol>
+            <li>Save the script as <code class="inline">setup_joomla.sh</code> and make it executable.</li>
+            <li>Run with a project name for latest Joomla, or pass a version to pin.</li>
+            <li>On completion, the script launches <code class="inline">/administrator</code>.</li>
+          </ol>
+          <pre><button class="copy" data-target="snip-quickstart">Copy</button><code id="snip-quickstart">chmod +x setup_joomla.sh
+./setup_joomla.sh demo           # latest
+./setup_joomla.sh demo 5.1.2     # specific</code></pre>
+        </section>
+
+        <section class="card" id="workflow">
+          <h3>How it Works</h3>
+          <ol>
+            <li><strong>Parse args</strong>: <code class="inline">&lt;project_name&gt; [joomla_version]</code>.</li>
+            <li><strong>Resolve download URL</strong>: GitHub API for latest, or fixed release for a version.</li>
+            <li><strong>Create project directory</strong>: <code class="inline">mkdir &amp;&amp; cd</code>.</li>
+            <li><strong>Download &amp; extract</strong>: <code class="inline">curl -L -o joomla.zip</code> then <code class="inline">unzip</code>.</li>
+            <li><strong>Configure &amp; start DDEV</strong>: <code class="inline">ddev config</code> → <code class="inline">ddev start</code>.</li>
+            <li><strong>Unattended Joomla install</strong>: Joomla CLI installer with site/admin/db flags.</li>
+            <li><strong>Open admin</strong>: <code class="inline">ddev launch /administrator</code>.</li>
+          </ol>
+          <pre><button class="copy" data-target="snip-install-cmd">Copy</button><code id="snip-install-cmd">ddev php installation/joomla.php install \
+  --site-name="$PROJECT_NAME" \
+  --admin-user="Administrator" \
+  --admin-username=admin \
+  --admin-password="AdminAdmin1!" \
+  --admin-email="admin@example.com" \
+  --db-type=mysql \
+  --db-encryption=0 \
+  --db-host=db --db-user=db --db-pass=db --db-name=db \
+  --db-prefix=ddev_ \
+  --public-folder=""</code></pre>
+        </section>
+
+        <section class="card" id="cli">
+          <h3>CLI & Examples</h3>
+          <pre><button class="copy" data-target="snip-cli">Copy</button><code id="snip-cli">./setup_joomla.sh &lt;project_name&gt; [joomla_version]
+
+# Latest Joomla
+./setup_joomla.sh demo
+
+# Specific Joomla version
+./setup_joomla.sh demo 5.1.2</code></pre>
+          <p class="muted">If a version does not exist, the download may 404. See <a href="#troubleshoot">Troubleshooting</a>.</p>
+        </section>
+
+        <section class="grid" id="defaults">
+          <article class="card half">
+            <h3>Defaults (Local Only)</h3>
+            <ul>
+              <li><strong>Site name</strong>: <code class="inline">$PROJECT_NAME</code></li>
+              <li><strong>Admin username</strong>: <code class="inline">admin</code></li>
+              <li><strong>Password</strong>: <code class="inline">AdminAdmin1!</code></li>
+              <li><strong>Email</strong>: <code class="inline">admin@example.com</code></li>
+              <li><strong>DB</strong>: host/user/pass/name <code class="inline">db/db/db/db</code></li>
+              <li><strong>Prefix</strong>: <code class="inline">ddev_</code></li>
+            </ul>
+            <p class="warn">Change for shared/staging/prod.</p>
+          </article>
+          <article class="card half">
+            <h3>Project Structure</h3>
+            <pre><button class="copy" data-target="snip-structure">Copy</button><code id="snip-structure">$PROJECT_NAME/
+├─ administrator/
+├─ components/
+├─ installation/
+├─ plugins/
+├─ templates/
+├─ images/
+├─ configuration.php
+├─ .ddev/
+└─ …</code></pre>
+          </article>
+        </section>
+
+        <section class="card" id="customize">
+          <h3>Customization</h3>
+          <h4>Environment‑driven credentials</h4>
+          <pre><button class="copy" data-target="snip-env">Copy</button><code id="snip-env">export JOOMLA_ADMIN_USER=Administrator
+export JOOMLA_ADMIN_USERNAME=admin
+export JOOMLA_ADMIN_PASSWORD='ChangeMe123!'
+export JOOMLA_ADMIN_EMAIL='dev@example.com'
+
+# Use these env vars in your script's install command</code></pre>
+          <h4>Switch web server</h4>
+          <pre><button class="copy" data-target="snip-web">Copy</button><code id="snip-web">ddev config --project-type=php --webserver-type=nginx-fpm \
+  --upload-dirs=images,media --project-name="$PROJECT_NAME"</code></pre>
+          <h4>Auto‑install extensions</h4>
+          <pre><button class="copy" data-target="snip-ext">Copy</button><code id="snip-ext"># Inside container path may be /var/www/html
+# Example install of a local package zip
+ddev exec php cli/joomla.php extension:install \
+  /var/www/html/tmp/your-extension.zip</code></pre>
+        </section>
+
+        <section class="card" id="troubleshoot">
+          <h3>Troubleshooting</h3>
+          <ul>
+            <li><strong>404 on download</strong>: Confirm asset name <code class="inline">Joomla_&lt;version&gt;-Stable-Full_Package.zip</code>; try latest (no version).</li>
+            <li><strong>Missing jq</strong>: Install via your package manager (see prerequisites).</li>
+            <li><strong>Docker not running</strong>: Start daemon; try <code class="inline">ddev poweroff &amp;&amp; ddev start</code>.</li>
+            <li><strong>Port 80/443 conflicts</strong>: Stop other local servers or restart DDEV.</li>
+            <li><strong>Installer path changed</strong>: Joomla CLI path may vary in future; update the command accordingly.</li>
+            <li><strong>Windows</strong>: Use WSL2 (Ubuntu) with Docker Desktop; run the script in Linux shell.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="faq">
+          <h3>FAQ</h3>
+          <p><strong>Multiple sites?</strong> Yes. Use unique project names; DDEV isolates environments.</p>
+          <p><strong>DB & files?</strong> DB is in the DDEV volume; files live in your project folder. Use <code class="inline">ddev export-db/import-db</code> for backups.</p>
+          <p><strong>phpMyAdmin?</strong> <code class="inline">ddev launch -p</code> or see <code class="inline">ddev describe</code> for service URLs.</p>
+          <p><strong>PHP overrides?</strong> Put custom <code class="inline">.ini</code> files in <code class="inline">.ddev/php/</code> and <code class="inline">ddev restart</code>.</p>
+        </section>
+
+        <section class="card" id="security">
+          <h3>Security Notes</h3>
+          <p class="callout"><span class="danger">Heads‑up:</span> The bundled credentials are intended for <strong>local development only</strong>. Never reuse in staging/production or public demos.</p>
+        </section>
+
+        <section class="card" id="cleanup">
+          <h3>Clean Up</h3>
+          <pre><button class="copy" data-target="snip-clean">Copy</button><code id="snip-clean">cd $PROJECT_NAME
+# Stop containers
+ddev stop
+# Remove DDEV project (keeps code)
+ddev delete -O
+# Optional: remove folder
+cd .. && rm -rf $PROJECT_NAME</code></pre>
+        </section>
+
+        <section class="card" id="script">
+          <h3>Full Script (Reference)</h3>
+          <pre><button class="copy" data-target="snip-full">Copy</button><code id="snip-full">#!/bin/bash
+# Usage: ./setup_joomla.sh <project_name> <joomla_version>
+# Example: ./setup_joomla.sh testsite 5.1.2
+
+PROJECT_NAME=$1
+JOOMLA_VERSION=$2
+
+if [ -z "$PROJECT_NAME" ]; then
+  echo "❌ Please provide a project name."
+  echo "👉 Usage: ./setup_joomla.sh <project_name> [joomla_version]"
+  exit 1
+fi
+
+if [ -z "$JOOMLA_VERSION" ]; then
+  echo "⚙️  No Joomla version provided. Downloading latest stable release..."
+  DOWNLOAD_URL=$(curl -sL https://api.github.com/repos/joomla/joomla-cms/releases/latest | jq -r '.assets | map(select(.name | test("^Joomla.*Stable-Full_Package\\.zip$")))[0].browser_download_url')
+else
+  echo "⬇️  Downloading Joomla version $JOOMLA_VERSION ..."
+  DOWNLOAD_URL="https://github.com/joomla/joomla-cms/releases/download/${JOOMLA_VERSION}/Joomla_${JOOMLA_VERSION}-Stable-Full_Package.zip"
+fi
+
+mkdir "$PROJECT_NAME"
+cd "$PROJECT_NAME" || exit
+
+curl -L -o joomla.zip "$DOWNLOAD_URL"
+unzip joomla.zip >/dev/null
+rm joomla.zip
+
+ddev config --project-type=php --webserver-type=apache-fpm --upload-dirs=images --project-name="$PROJECT_NAME"
+
+ddev start
+
+ddev php installation/joomla.php install \
+  --site-name="$PROJECT_NAME" \
+  --admin-user="Administrator" \
+  --admin-username=admin \
+  --admin-password="AdminAdmin1!" \
+  --admin-email="admin@example.com" \
+  --db-type=mysql \
+  --db-encryption=0 \
+  --db-host=db \
+  --db-user=db \
+  --db-pass="db" \
+  --db-name=db \
+  --db-prefix=ddev_ \
+  --public-folder=""
+
+echo "✅ Joomla $JOOMLA_VERSION setup complete!"
+echo "🌐 Launching admin panel..."
+ddev launch /administrator</code></pre>
+        </section>
+
+        <footer>Built for fast onboarding. Happy hacking! 🚀</footer>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Copy button logic
+    document.querySelectorAll('button.copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-target');
+        const el = document.getElementById(id);
+        if (!el) return;
+        const text = el.innerText;
+        navigator.clipboard.writeText(text).then(() => {
+          const old = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy', 1200);
+        });
+      });
+    });
+
+    // Search (client-side filter by section headline and code)
+    const input = document.getElementById('searchInput');
+    input?.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('section.card, section.hero, section.grid').forEach(sec => {
+        if (!q) { sec.style.display = ''; return; }
+        const text = sec.innerText.toLowerCase();
+        sec.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+
+    // TOC active link highlight on scroll
+    const sections = document.querySelectorAll('section[id]');
+    const tocLinks = document.querySelectorAll('.toc a');
+    const map = {};
+    tocLinks.forEach(a => map[a.getAttribute('href').slice(1)] = a);
+
+    const onScroll = () => {
+      let current = 'intro';
+      sections.forEach(sec => {
+        const rect = sec.getBoundingClientRect();
+        if (rect.top <= 120) current = sec.id;
+      });
+      tocLinks.forEach(a => a.classList.remove('active'));
+      if (map[current]) map[current].classList.add('active');
+    };
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Keyboard shortcut for search
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        document.getElementById('searchInput')?.focus();
+      }
+    });
+
+    // Copy full script from page button
+    document.getElementById('copyInstall')?.addEventListener('click', () => {
+      const full = document.getElementById('snip-full');
+      if (!full) return;
+      navigator.clipboard.writeText(full.innerText).then(() => {
+        const btn = document.getElementById('copyInstall');
+        const old = btn.textContent;
+        btn.textContent = 'Script Copied!';
+        setTimeout(() => btn.textContent = old, 1400);
+      });
+    });
+  </script>
+</body>
+</html>
